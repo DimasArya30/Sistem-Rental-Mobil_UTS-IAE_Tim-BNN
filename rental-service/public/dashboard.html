@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DriveNow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { inter: ['Inter', 'sans-serif'] },
+                    colors: {
+                        dark: { 100:'#f1f5f9', 200:'#e2e8f0', 300:'#cbd5e1', 400:'#94a3b8', 500:'#64748b', 600:'#475569', 700:'#334155', 800:'#1e293b', 900:'#0f172a', 950:'#020617' },
+                        brand: { 400:'#60a5fa', 500:'#3b82f6', 600:'#2563eb' },
+                        emerald: { 400:'#34d399', 500:'#10b981' },
+                        amber: { 400:'#fbbf24', 500:'#f59e0b' },
+                        rose: { 400:'#fb7185', 500:'#f43f5e' },
+                        violet: { 400:'#a78bfa', 500:'#8b5cf6' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        @keyframes fadeInUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes bounceIn { 0%{transform:scale(.3);opacity:0} 50%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
+        @keyframes pulseDot { 0%,100%{opacity:1} 50%{opacity:.5} }
+        .animate-fade-in-up { animation: fadeInUp .4s ease-out; }
+        .animate-bounce-in { animation: bounceIn .5s ease-out; }
+        .pulse-dot { animation: pulseDot 2s ease-in-out infinite; }
+        .glass { background:rgba(15,23,42,.8); backdrop-filter:blur(20px); border:1px solid rgba(51,65,85,.5); }
+        .glass-light { background:rgba(30,41,59,.6); backdrop-filter:blur(10px); border:1px solid rgba(51,65,85,.3); }
+        .gradient-text { background:linear-gradient(135deg,#60a5fa,#a78bfa,#f472b6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .gradient-text-green { background:linear-gradient(135deg,#34d399,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .glow-blue { box-shadow:0 0 20px rgba(59,130,246,.3); }
+        .glow-amber { box-shadow:0 0 20px rgba(245,158,11,.3); }
+        .glow-green { box-shadow:0 0 20px rgba(16,185,129,.3); }
+        .glow-violet { box-shadow:0 0 20px rgba(139,92,246,.3); }
+        .card-hover { transition:all .3s ease; }
+        .card-hover:hover { transform:translateY(-2px); box-shadow:0 10px 40px rgba(0,0,0,.3); }
+        .sidebar-item { transition:all .2s ease; position:relative; overflow:hidden; }
+        .sidebar-item::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(to bottom,#3b82f6,#8b5cf6); transform:scaleY(0); transition:transform .2s ease; }
+        .sidebar-item:hover::before,.sidebar-item.active::before { transform:scaleY(1); }
+        .sidebar-item:hover,.sidebar-item.active { background:rgba(59,130,246,.1); }
+        .status-available { background:rgba(16,185,129,.15); color:#34d399; border:1px solid rgba(16,185,129,.3); }
+        .status-rented { background:rgba(244,63,94,.15); color:#fb7185; border:1px solid rgba(244,63,94,.3); }
+        .status-active { background:rgba(59,130,246,.15); color:#60a5fa; border:1px solid rgba(59,130,246,.3); }
+        .status-returned { background:rgba(16,185,129,.15); color:#34d399; border:1px solid rgba(16,185,129,.3); }
+        .status-maintenance { background:rgba(245,158,11,.15); color:#fbbf24; border:1px solid rgba(245,158,11,.3); }
+        .btn-primary { background:linear-gradient(135deg,#2563eb,#7c3aed); transition:all .3s ease; }
+        .btn-primary:hover { background:linear-gradient(135deg,#1d4ed8,#6d28d9); transform:translateY(-1px); box-shadow:0 5px 20px rgba(37,99,235,.4); }
+        .btn-success { background:linear-gradient(135deg,#059669,#0d9488); transition:all .3s ease; }
+        .btn-success:hover { transform:translateY(-1px); box-shadow:0 5px 20px rgba(5,150,105,.4); }
+        .input-field { transition:all .2s ease; }
+        .input-field:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.2); }
+        .bg-pattern { background-image:radial-gradient(circle at 1px 1px,rgba(51,65,85,.3) 1px,transparent 0); background-size:40px 40px; }
+        .modal-overlay { animation:fadeInUp .2s ease-out; }
+        .modal-content { animation:bounceIn .4s ease-out; }
+        @keyframes slideIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+        .log-entry { animation:slideIn .3s ease-out; }
+    </style>
+</head>
+<body class="bg-dark-950 text-dark-100 min-h-screen bg-pattern"
+      x-data="app()"
+      x-init="init()">
+
+    <!-- Background Blobs -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-96 h-96 bg-brand-500/5 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/2 -left-40 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="relative flex min-h-screen">
+
+        <!-- SIDEBAR -->
+        <aside class="w-64 glass fixed h-full z-50 flex flex-col">
+            <div class="p-5 border-b border-dark-700/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center glow-blue">
+                        <i class="fas fa-car text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold gradient-text">DriveNow</h1>
+                        <p class="text-[9px] text-dark-500 uppercase tracking-[3px]">Microservices</p>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="flex-1 p-3 space-y-1">
+                <template x-for="item in menuItems" :key="item.page">
+                    <button @click="page = item.page"
+                        :class="page === item.page ? 'active ' + item.activeColor : 'text-dark-400 hover:text-dark-200'"
+                        class="sidebar-item w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium">
+                        <i :class="item.icon" class="w-5 text-center"></i>
+                        <span x-text="item.label"></span>
+                        <span x-show="item.badge" x-text="item.badge" class="ml-auto text-[9px] px-2 py-0.5 rounded-full" :class="item.badgeClass"></span>
+                    </button>
+                </template>
+            </nav>
+
+            <div class="p-3 border-t border-dark-700/50">
+                <p class="text-[9px] uppercase tracking-[2px] text-dark-500 font-semibold mb-2 px-2">Services</p>
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-light text-xs">
+                        <span class="w-2 h-2 rounded-full pulse-dot" :class="svc.customer ? 'bg-emerald-400' : 'bg-rose-400'"></span>
+                        <span class="text-dark-300">Customer</span>
+                        <span class="ml-auto text-dark-500">:8000</span>
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-light text-xs">
+                        <span class="w-2 h-2 rounded-full pulse-dot" :class="svc.car ? 'bg-emerald-400' : 'bg-rose-400'"></span>
+                        <span class="text-dark-300">Car (CI4)</span>
+                        <span class="ml-auto text-dark-500">:8080</span>
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-light text-xs">
+                        <span class="w-2 h-2 rounded-full pulse-dot" :class="svc.rental ? 'bg-emerald-400' : 'bg-rose-400'"></span>
+                        <span class="text-dark-300">Rental</span>
+                        <span class="ml-auto text-dark-500">:8002</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="flex-1 ml-64">
+            <!-- Top Bar -->
+            <header class="sticky top-0 z-40 glass border-b border-dark-700/50">
+                <div class="flex items-center justify-between px-6 py-3">
+                    <div>
+                        <h2 class="text-base font-semibold" x-text="title"></h2>
+                        <p class="text-[11px] text-dark-400" x-text="subtitle"></p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button @click="loadData()" class="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-light text-xs text-dark-300 hover:text-dark-100">
+                            <i class="fas fa-sync-alt" :class="isLoading && 'animate-spin'"></i> Refresh
+                        </button>
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center text-[10px] font-bold text-white">UTS</div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-6">
+
+                <!-- ===== DASHBOARD ===== -->
+                <div x-show="page==='dashboard'" x-transition:enter="animate-fade-in-up">
+                    <div class="grid grid-cols-4 gap-5 mb-6">
+                        <div class="glass rounded-xl p-5 card-hover glow-blue">
+                            <p class="text-dark-400 text-xs mb-1">Customers</p>
+                            <p class="text-2xl font-bold" x-text="customers.length">0</p>
+                            <p class="text-[10px] text-brand-400 mt-1"><i class="fas fa-server mr-1"></i>:8000</p>
+                        </div>
+                        <div class="glass rounded-xl p-5 card-hover glow-amber">
+                            <p class="text-dark-400 text-xs mb-1">Available Cars</p>
+                            <p class="text-2xl font-bold" x-text="availableCarCount">0</p>
+                            <p class="text-[10px] text-amber-400 mt-1"><i class="fas fa-server mr-1"></i>:8080 (CI4)</p>
+                        </div>
+                        <div class="glass rounded-xl p-5 card-hover glow-green">
+                            <p class="text-dark-400 text-xs mb-1">Active Rentals</p>
+                            <p class="text-2xl font-bold" x-text="activeRentalCount">0</p>
+                            <p class="text-[10px] text-emerald-400 mt-1"><i class="fas fa-server mr-1"></i>:8002</p>
+                        </div>
+                        <div class="glass rounded-xl p-5 card-hover glow-violet">
+                            <p class="text-dark-400 text-xs mb-1">Total Revenue</p>
+                            <p class="text-2xl font-bold gradient-text-green" x-text="'Rp ' + formatRp(totalRevenue)">Rp 0</p>
+                            <p class="text-[10px] text-violet-400 mt-1"><i class="fas fa-exchange-alt mr-1"></i>Aggregated</p>
+                        </div>
+                    </div>
+
+                    <!-- Flow Diagram -->
+                    <div class="glass rounded-xl p-6 mb-6">
+                        <h3 class="text-sm font-semibold mb-4 flex items-center gap-2"><i class="fas fa-project-diagram text-violet-400"></i>Communication Flow</h3>
+                        <div class="flex items-center justify-center gap-3">
+                            <div class="glass-light rounded-lg p-4 text-center min-w-[150px]">
+                                <div class="w-10 h-10 mx-auto rounded-lg bg-brand-500/20 flex items-center justify-center mb-2"><i class="fas fa-users text-brand-400"></i></div>
+                                <p class="text-xs font-semibold">Customer</p>
+                                <p class="text-[9px] text-dark-500">Laravel :8000</p>
+                            </div>
+                            <div class="text-dark-600"><i class="fas fa-arrows-alt-h"></i></div>
+                            <div class="glass-light rounded-lg p-4 text-center min-w-[150px]">
+                                <div class="w-10 h-10 mx-auto rounded-lg bg-amber-500/20 flex items-center justify-center mb-2"><i class="fas fa-car text-amber-400"></i></div>
+                                <p class="text-xs font-semibold">Car</p>
+                                <p class="text-[9px] text-dark-500">CI4 :8080</p>
+                            </div>
+                            <div class="text-dark-600"><i class="fas fa-arrows-alt-h"></i></div>
+                            <div class="glass-light rounded-lg p-4 text-center min-w-[150px]">
+                                <div class="w-10 h-10 mx-auto rounded-lg bg-emerald-500/20 flex items-center justify-center mb-2"><i class="fas fa-key text-emerald-400"></i></div>
+                                <p class="text-xs font-semibold">Rental</p>
+                                <p class="text-[9px] text-dark-500">Laravel :8002</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Rentals Table -->
+                    <div class="glass rounded-xl p-5">
+                        <h3 class="text-sm font-semibold mb-3 flex items-center gap-2"><i class="fas fa-history text-emerald-400"></i>Recent Rentals</h3>
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-[10px] text-dark-500 uppercase tracking-wider border-b border-dark-700/50">
+                                    <th class="pb-2 text-left pr-4">Customer</th>
+                                    <th class="pb-2 text-left pr-4">Car</th>
+                                    <th class="pb-2 text-left pr-4">Days</th>
+                                    <th class="pb-2 text-left pr-4">Total</th>
+                                    <th class="pb-2 text-left">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="r in rentals.slice(0,5)" :key="r.id">
+                                    <tr class="border-b border-dark-700/30">
+                                        <td class="py-2.5 pr-4">
+                                            <p class="font-medium text-xs" x-text="r.customer_name || '-'"></p>
+                                        </td>
+                                        <td class="py-2.5 pr-4 text-xs" x-text="(r.car_brand||'') + ' ' + (r.car_model||'')"></td>
+                                        <td class="py-2.5 pr-4 text-xs" x-text="r.total_days"></td>
+                                        <td class="py-2.5 pr-4 text-xs font-semibold" x-text="'Rp ' + formatRp(r.total_price)"></td>
+                                        <td class="py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-medium" :class="'status-' + r.status" x-text="r.status"></span></td>
+                                    </tr>
+                                </template>
+                                <tr x-show="rentals.length===0">
+                                    <td colspan="5" class="py-6 text-center text-dark-500 text-xs"><i class="fas fa-inbox text-2xl mb-1 block"></i>No rentals yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===== CUSTOMERS ===== -->
+                <div x-show="page==='customers'" x-transition:enter="animate-fade-in-up">
+                    <div class="flex justify-end mb-4">
+                        <button @click="openModal('customer')" class="btn-primary px-4 py-2 rounded-lg text-xs font-medium text-white"><i class="fas fa-plus mr-1"></i>Add Customer</button>
+                    </div>
+                    <div class="glass rounded-xl overflow-hidden">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-[10px] text-dark-500 uppercase tracking-wider bg-dark-800/50">
+                                    <th class="px-5 py-3 text-left">ID</th>
+                                    <th class="px-5 py-3 text-left">Name</th>
+                                    <th class="px-5 py-3 text-left">Email</th>
+                                    <th class="px-5 py-3 text-left">Phone</th>
+                                    <th class="px-5 py-3 text-left">KTP</th>
+                                    <th class="px-5 py-3 text-left">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="c in customers" :key="c.id">
+                                    <tr class="border-t border-dark-700/30 hover:bg-dark-800/30">
+                                        <td class="px-5 py-3 text-dark-500 text-xs">#<span x-text="c.id"></span></td>
+                                        <td class="px-5 py-3">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-7 h-7 rounded-md bg-brand-500/10 flex items-center justify-center text-brand-400 text-[10px] font-bold" x-text="c.name ? c.name.charAt(0) : '?'"></div>
+                                                <span class="text-xs font-medium" x-text="c.name"></span>
+                                            </div>
+                                        </td>
+                                        <td class="px-5 py-3 text-xs text-dark-300" x-text="c.email"></td>
+                                        <td class="px-5 py-3 text-xs text-dark-400" x-text="c.phone"></td>
+                                        <td class="px-5 py-3 text-xs text-dark-400 font-mono" x-text="c.ktp_number"></td>
+                                        <td class="px-5 py-3">
+                                            <button @click="fetchCustomerRentals(c.id)" class="text-[10px] text-violet-400 hover:underline"><i class="fas fa-history mr-1"></i>Rentals</button>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="customers.length===0"><td colspan="6" class="px-5 py-10 text-center text-dark-500 text-xs"><i class="fas fa-users text-3xl mb-2 block opacity-20"></i>No customers</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===== CARS ===== -->
+                <div x-show="page==='cars'" x-transition:enter="animate-fade-in-up">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex gap-2">
+                            <button @click="carFilter='all'; applyCarFilter()" :class="carFilter==='all'?'bg-amber-500/20 text-amber-400':'glass-light text-dark-400'" class="px-3 py-1.5 rounded-lg text-[10px] font-medium">All</button>
+                            <button @click="carFilter='available'; applyCarFilter()" :class="carFilter==='available'?'bg-emerald-500/20 text-emerald-400':'glass-light text-dark-400'" class="px-3 py-1.5 rounded-lg text-[10px] font-medium">Available</button>
+                            <button @click="carFilter='rented'; applyCarFilter()" :class="carFilter==='rented'?'bg-rose-500/20 text-rose-400':'glass-light text-dark-400'" class="px-3 py-1.5 rounded-lg text-[10px] font-medium">Rented</button>
+                        </div>
+                        <button @click="openModal('car')" class="btn-primary px-4 py-2 rounded-lg text-xs font-medium text-white"><i class="fas fa-plus mr-1"></i>Add Car</button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-5">
+                        <template x-for="car in displayCars" :key="car.id">
+                            <div class="glass rounded-xl overflow-hidden card-hover">
+                                <div class="h-32 bg-gradient-to-br from-dark-800 to-dark-900 flex items-center justify-center relative">
+                                    <i class="fas fa-car-side text-5xl" :class="car.status==='available'?'text-amber-500/20':'text-dark-600'"></i>
+                                    <span class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium" :class="'status-'+car.status" x-text="car.status"></span>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-bold text-sm" x-text="(car.brand||'')+' '+(car.model||'')"></h4>
+                                    <div class="flex gap-3 mt-1 text-[10px] text-dark-500">
+                                        <span x-text="car.year"></span>
+                                        <span x-text="car.plate_number"></span>
+                                    </div>
+                                    <div class="flex items-center justify-between mt-3 pt-3 border-t border-dark-700/50">
+                                        <p class="text-sm font-bold gradient-text-green" x-text="'Rp '+formatRp(car.price_per_day)+'/day'"></p>
+                                        <button x-show="car.status==='available'" @click="quickRent(car)" class="btn-success px-3 py-1.5 rounded-md text-[10px] font-medium text-white"><i class="fas fa-key mr-1"></i>Rent</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div x-show="displayCars.length===0" class="glass rounded-xl p-10 text-center text-dark-500 text-xs"><i class="fas fa-car text-3xl mb-2 block opacity-20"></i>No cars found</div>
+                </div>
+
+                <!-- ===== RENTALS ===== -->
+                <div x-show="page==='rentals'" x-transition:enter="animate-fade-in-up">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex gap-2">
+                            <button @click="rentalFilter='all'; applyRentalFilter()" :class="rentalFilter==='all'?'bg-emerald-500/20 text-emerald-400':'glass-light text-dark-400'" class="px-3 py-1.5 rounded-lg text-[10px] font-medium">All</button>
+                            <button @click="rentalFilter='active'; applyRentalFilter()" :class="rentalFilter==='active'?'bg-brand-500/20 text-brand-400':'glass-light text-dark-400'" class="px-3 py-1.5 rounded-lg text-[10px] font-medium">Active</button>
+                            <button @click="rentalFilter='returned'; applyRentalFilter()" :class="rentalFilter==='returned'?'bg-emerald-500/20 text-emerald-400':'glass-light text-dark-400'" class="px-3 py-1.5 rounded-lg text-[10px] font-medium">Returned</button>
+                        </div>
+                        <button @click="openModal('rental')" class="btn-primary px-4 py-2 rounded-lg text-xs font-medium text-white"><i class="fas fa-plus mr-1"></i>New Rental</button>
+                    </div>
+                    <div class="space-y-3">
+                        <template x-for="r in displayRentals" :key="r.id">
+                            <div class="glass rounded-xl p-5 card-hover">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center"><i class="fas fa-key text-emerald-400 text-sm"></i></div>
+                                        <div>
+                                            <div class="flex items-center gap-2"><h4 class="font-semibold text-sm" x-text="r.customer_name||'-'"></h4><span class="px-2 py-0.5 rounded-full text-[10px] font-medium" :class="'status-'+r.status" x-text="r.status"></span></div>
+                                            <p class="text-xs text-dark-400 mt-0.5" x-text="(r.car_brand||'')+' '+(r.car_model||'')+' • '+(r.car_plate||'')"></p>
+                                            <div class="flex gap-3 mt-1 text-[10px] text-dark-500">
+                                                <span><i class="fas fa-calendar-check mr-1"></i><span x-text="r.rental_date"></span></span>
+                                                <span><i class="fas fa-calendar-times mr-1"></i><span x-text="r.return_date"></span></span>
+                                                <span><i class="fas fa-clock mr-1"></i><span x-text="r.total_days"></span> days</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-lg font-bold gradient-text-green" x-text="'Rp '+formatRp(r.total_price)"></p>
+                                        <button x-show="r.status==='active'" @click="returnCar(r.id)" class="btn-success px-3 py-1.5 rounded-md text-[10px] font-medium text-white mt-1"><i class="fas fa-undo mr-1"></i>Return</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div x-show="displayRentals.length===0" class="glass rounded-xl p-10 text-center text-dark-500 text-xs"><i class="fas fa-key text-3xl mb-2 block opacity-20"></i>No rentals</div>
+                </div>
+
+                <!-- ===== COMM LOG ===== -->
+                <div x-show="page==='logs'" x-transition:enter="animate-fade-in-up">
+                    <div class="flex items-center justify-between mb-4">
+                        <p class="text-xs text-dark-400">Real-time HTTP communication between services</p>
+                        <button @click="logs=[]" class="text-[10px] text-rose-400 hover:underline"><i class="fas fa-trash mr-1"></i>Clear</button>
+                    </div>
+                    <div class="glass rounded-xl overflow-hidden">
+                        <div class="max-h-[500px] overflow-y-auto p-3 space-y-2">
+                            <template x-for="(log,i) in logs" :key="i">
+                                <div class="log-entry glass-light rounded-lg p-3">
+                                    <div class="flex items-start gap-2">
+                                        <div class="w-7 h-7 rounded flex items-center justify-center flex-shrink-0 text-[10px] font-bold"
+                                            :class="log.method==='GET'?'bg-brand-500/20 text-brand-400':log.method==='POST'?'bg-emerald-500/20 text-emerald-400':'bg-amber-500/20 text-amber-400'"
+                                            x-text="log.method"></div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-1 flex-wrap">
+                                                <span class="text-[9px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400" x-text="log.from"></span>
+                                                <i class="fas fa-arrow-right text-dark-600 text-[8px]"></i>
+                                                <span class="text-[9px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400" x-text="log.to"></span>
+                                            </div>
+                                            <p class="text-[11px] text-dark-300 mt-0.5 font-mono truncate" x-text="log.url"></p>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <span class="text-[9px] px-1.5 py-0.5 rounded-full" :class="log.status>0&&log.status<300?'bg-emerald-500/10 text-emerald-400':'bg-rose-500/10 text-rose-400'" x-text="log.status + (log.status>0&&log.status<300?' OK':' ERR')"></span>
+                                                <span class="text-[9px] text-dark-500" x-text="log.ms+'ms'"></span>
+                                                <span class="text-[9px] text-dark-500" x-text="log.time"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <div x-show="logs.length===0" class="py-10 text-center text-dark-500 text-xs"><i class="fas fa-network-wired text-3xl mb-2 block opacity-20"></i>Do an action to see logs</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== ARCHITECTURE ===== -->
+                <div x-show="page==='arch'" x-transition:enter="animate-fade-in-up">
+                    <div class="grid grid-cols-2 gap-5">
+                        <div class="glass rounded-xl p-5">
+                            <h3 class="text-sm font-semibold mb-3 flex items-center gap-2"><i class="fas fa-exchange-alt text-violet-400"></i>Provider-Consumer Map</h3>
+                            <div class="space-y-2">
+                                <div class="glass-light rounded-lg p-3">
+                                    <div class="flex items-center gap-2 mb-1"><div class="w-2.5 h-2.5 rounded-full bg-brand-500"></div><span class="font-semibold text-xs">Customer Service (Laravel)</span></div>
+                                    <div class="ml-4 space-y-0.5 text-[10px]">
+                                        <p class="text-emerald-400"><i class="fas fa-arrow-up mr-1"></i>Provider: GET/POST /api/customers</p>
+                                        <p class="text-violet-400"><i class="fas fa-arrow-down mr-1"></i>Consumer: GET /api/customers/{id}/rentals → RentalService</p>
+                                    </div>
+                                </div>
+                                <div class="glass-light rounded-lg p-3">
+                                    <div class="flex items-center gap-2 mb-1"><div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div><span class="font-semibold text-xs">Car Service (CodeIgniter 4)</span></div>
+                                    <div class="ml-4 space-y-0.5 text-[10px]">
+                                        <p class="text-emerald-400"><i class="fas fa-arrow-up mr-1"></i>Provider: GET/POST/PUT /api/cars</p>
+                                        <p class="text-violet-400"><i class="fas fa-arrow-down mr-1"></i>Consumer: GET /api/cars/{id}/renters → CustomerService</p>
+                                    </div>
+                                </div>
+                                <div class="glass-light rounded-lg p-3">
+                                    <div class="flex items-center gap-2 mb-1"><div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div><span class="font-semibold text-xs">Rental Service (Laravel)</span></div>
+                                    <div class="ml-4 space-y-0.5 text-[10px]">
+                                        <p class="text-emerald-400"><i class="fas fa-arrow-up mr-1"></i>Provider: GET /api/rentals</p>
+                                        <p class="text-violet-400"><i class="fas fa-arrow-down mr-1"></i>Consumer: POST /api/rentals → Customer + Car Service</p>
+                                        <p class="text-violet-400"><i class="fas fa-arrow-down mr-1"></i>Consumer: PUT /api/rentals/{id}/return → CarService</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass rounded-xl p-5">
+                            <h3 class="text-sm font-semibold mb-3 flex items-center gap-2"><i class="fas fa-layer-group text-rose-400"></i>Tech Stack</h3>
+                            <div class="space-y-3">
+                                <div class="glass-light rounded-lg p-3 flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center"><i class="fab fa-laravel text-red-400 text-lg"></i></div><div><p class="font-semibold text-xs">Laravel 10</p><p class="text-[10px] text-dark-400">Customer & Rental Service</p></div></div>
+                                <div class="glass-light rounded-lg p-3 flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center"><i class="fas fa-fire text-orange-400 text-lg"></i></div><div><p class="font-semibold text-xs">CodeIgniter 4</p><p class="text-[10px] text-dark-400">Car Service</p></div></div>
+                                <div class="glass-light rounded-lg p-3 flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center"><i class="fas fa-database text-blue-400 text-lg"></i></div><div><p class="font-semibold text-xs">MySQL</p><p class="text-[10px] text-dark-400">3 Separate Databases</p></div></div>
+                                <div class="glass-light rounded-lg p-3 flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center"><i class="fas fa-plug text-green-400 text-lg"></i></div><div><p class="font-semibold text-xs">REST API + JSON</p><p class="text-[10px] text-dark-400">Service-to-Service HTTP</p></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: ADD CUSTOMER -->
+    <div x-show="modal==='customer'" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="modal=null">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm modal-overlay"></div>
+        <div class="relative glass rounded-xl p-6 w-full max-w-md modal-content glow-blue">
+            <button @click="modal=null" class="absolute top-3 right-3 text-dark-400 hover:text-dark-200"><i class="fas fa-times"></i></button>
+            <h3 class="text-base font-bold mb-4 flex items-center gap-2"><i class="fas fa-user-plus text-brand-400"></i>Add Customer</h3>
+            <div class="space-y-3">
+                <input x-model="fCustomer.name" placeholder="Full Name" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                <input x-model="fCustomer.email" type="email" placeholder="Email" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                <div class="grid grid-cols-2 gap-3">
+                    <input x-model="fCustomer.phone" placeholder="Phone" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                    <input x-model="fCustomer.ktp_number" placeholder="KTP Number" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                </div>
+                <input x-model="fCustomer.address" placeholder="Address" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                <button @click="saveCustomer()" :disabled="isSaving" class="btn-primary w-full py-2.5 rounded-lg text-sm font-medium text-white"><i class="fas fa-save mr-1" :class="isSaving&&'animate-spin'"></i><span x-text="isSaving?'Saving...':'Save Customer'"></span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD CAR -->
+    <div x-show="modal==='car'" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="modal=null">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm modal-overlay"></div>
+        <div class="relative glass rounded-xl p-6 w-full max-w-md modal-content glow-amber">
+            <button @click="modal=null" class="absolute top-3 right-3 text-dark-400 hover:text-dark-200"><i class="fas fa-times"></i></button>
+            <h3 class="text-base font-bold mb-4 flex items-center gap-2"><i class="fas fa-car text-amber-400"></i>Add Car <span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 ml-auto">→ Car Service (CI4)</span></h3>
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <input x-model="fCar.brand" placeholder="Brand" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                    <input x-model="fCar.model" placeholder="Model" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <input x-model="fCar.year" type="number" placeholder="Year" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                    <input x-model="fCar.plate_number" placeholder="Plate (D 123 AB)" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                </div>
+                <input x-model="fCar.price_per_day" type="number" placeholder="Price per Day" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                <button @click="saveCar()" :disabled="isSaving" class="btn-primary w-full py-2.5 rounded-lg text-sm font-medium text-white"><i class="fas fa-save mr-1" :class="isSaving&&'animate-spin'"></i><span x-text="isSaving?'Saving...':'Save Car'"></span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: NEW RENTAL -->
+    <div x-show="modal==='rental'" class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="modal=null">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm modal-overlay"></div>
+        <div class="relative glass rounded-xl p-6 w-full max-w-lg modal-content glow-green">
+            <button @click="modal=null" class="absolute top-3 right-3 text-dark-400 hover:text-dark-200"><i class="fas fa-times"></i></button>
+            <h3 class="text-base font-bold mb-1 flex items-center gap-2"><i class="fas fa-key text-emerald-400"></i>New Rental</h3>
+            <p class="text-[10px] text-dark-400 mb-4"><i class="fas fa-info-circle mr-1"></i>Triggers 3 service-to-service calls</p>
+            <div class="glass-light rounded-lg p-2.5 mb-4 space-y-1 text-[10px]">
+                <div class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-[9px]">1</span><span class="text-dark-300">Rental →</span><span class="text-brand-400">CustomerService</span><span class="text-dark-500">GET /api/customers/{id}</span></div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-[9px]">2</span><span class="text-dark-300">Rental →</span><span class="text-amber-400">CarService</span><span class="text-dark-500">GET /api/cars/{id}</span></div>
+                <div class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-[9px]">3</span><span class="text-dark-300">Rental →</span><span class="text-amber-400">CarService</span><span class="text-dark-500">PUT /api/cars/{id}/status</span></div>
+            </div>
+            <div class="space-y-3">
+                <select x-model="fRental.customer_id" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                    <option value="">Select customer...</option>
+                    <template x-for="c in customers" :key="c.id"><option :value="c.id" x-text="c.name+' ('+c.email+')'"></option></template>
+                </select>
+                <select x-model="fRental.car_id" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                    <option value="">Select car...</option>
+                    <template x-for="car in cars.filter(c=>c.status==='available')" :key="car.id"><option :value="car.id" x-text="car.brand+' '+car.model+' - Rp '+formatRp(car.price_per_day)+'/day'"></option></template>
+                </select>
+                <div class="grid grid-cols-2 gap-3">
+                    <input x-model="fRental.rental_date" type="date" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                    <input x-model="fRental.return_date" type="date" class="input-field w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm outline-none">
+                </div>
+                <button @click="saveRental()" :disabled="isSaving" class="btn-success w-full py-2.5 rounded-lg text-sm font-medium text-white"><i class="fas fa-key mr-1" :class="isSaving&&'animate-spin'"></i><span x-text="isSaving?'Processing...':'Create Rental'"></span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOASTS -->
+    <div class="fixed bottom-5 right-5 z-[200] space-y-2">
+        <template x-for="t in toasts" :key="t.id">
+            <div class="toast glass rounded-lg px-4 py-3 flex items-center gap-2 min-w-[280px] animate-fade-in-up"
+                :class="t.type==='success'?'glow-green':t.type==='error'?'glow-blue':'glow-blue'" style="--tw-shadow-color:rgba(16,185,129,.3)">
+                <i class="fas text-sm" :class="t.type==='success'?'fa-check-circle text-emerald-400':t.type==='error'?'fa-exclamation-circle text-rose-400':'fa-info-circle text-brand-400'"></i>
+                <div><p class="text-xs font-medium" x-text="t.title"></p><p class="text-[10px] text-dark-400" x-text="t.msg"></p></div>
+            </div>
+        </template>
+    </div>
+
+    <script>
+    function app() {
+        return {
+        initCalled: false,
+
+async init() {
+    if (this.initCalled) return;
+
+    this.initCalled = true;
+
+    console.log("INIT SEKALI");
+
+    await this.loadData();
+},
+            page: 'dashboard',
+            modal: null,
+            isLoading: false,
+            isSaving: false,
+            carFilter: 'all',
+            rentalFilter: 'all',
+            customers: [],
+            cars: [],
+            rentals: [],
+            logs: [],
+            toasts: [],
+            tid: 0,
+            svc: { customer: false, car: false, rental: false },
+            fCustomer: { name:'', email:'', phone:'', ktp_number:'', address:'' },
+            fCar: { brand:'', model:'', year:'', plate_number:'', price_per_day:'' },
+            fRental: { customer_id:'', car_id:'', rental_date:'', return_date:'' },
+
+            menuItems: [
+                { page:'dashboard', label:'Dashboard', icon:'fas fa-chart-line', activeColor:'text-brand-400', badge:null, badgeClass:'' },
+                { page:'customers', label:'Customers', icon:'fas fa-users', activeColor:'text-brand-400', badge:'Laravel', badgeClass:'bg-brand-500/20 text-brand-400' },
+                { page:'cars', label:'Cars', icon:'fas fa-car-side', activeColor:'text-amber-400', badge:'CI4', badgeClass:'bg-amber-500/20 text-amber-400' },
+                { page:'rentals', label:'Rentals', icon:'fas fa-key', activeColor:'text-emerald-400', badge:'Laravel', badgeClass:'bg-emerald-500/20 text-emerald-400' },
+                { page:'logs', label:'Comm Log', icon:'fas fa-network-wired', activeColor:'text-violet-400', badge:null, badgeClass:'' },
+                { page:'arch', label:'Architecture', icon:'fas fa-project-diagram', activeColor:'text-rose-400', badge:null, badgeClass:'' }
+            ],
+
+            get title() {
+                return { dashboard:'Dashboard', customers:'Customer Management', cars:'Car Fleet Management', rentals:'Rental Transactions', logs:'Communication Log', arch:'System Architecture' }[this.page] || '';
+            },
+            get subtitle() {
+                return { dashboard:'Overview of all microservices', customers:'Customer Service • Laravel • Port 8000', cars:'Car Service • CodeIgniter 4 • Port 8080', rentals:'Rental Service • Laravel • Port 8002', logs:'Real-time service-to-service HTTP calls', arch:'Provider-Consumer relationships' }[this.page] || '';
+            },
+            get availableCarCount() { return this.cars.filter(function(c){ return c.status === 'available'; }).length; },
+            get activeRentalCount() { return this.rentals.filter(function(r){ return r.status === 'active'; }).length; },
+            get totalRevenue() { return this.rentals.reduce(function(s,r){ return s + (parseFloat(r.total_price) || 0); }, 0); },
+            get displayCars() {
+                var self = this;
+                if (self.carFilter === 'all') return self.cars;
+                return self.cars.filter(function(c){ return c.status === self.carFilter; });
+            },
+            get displayRentals() {
+                var self = this;
+                if (self.rentalFilter === 'all') return self.rentals;
+                return self.rentals.filter(function(r){ return r.status === self.rentalFilter; });
+            },
+
+            applyCarFilter() {},
+            applyRentalFilter() {},
+
+            async loadData() {
+                if (this.isLoading) return;
+                this.isLoading = true;
+                try {
+                    await Promise.all([this.ping(), this.fetchCustomers(), this.fetchCars(), this.fetchRentals()]);
+                } catch(e) { console.error(e); }
+                this.isLoading = false;
+            },
+
+            async ping() {
+                try { var r = await fetch('http://localhost:8000/api/customers'); this.svc.customer = r.ok; } catch(e) { this.svc.customer = false; }
+                try { var r = await fetch('http://localhost:8080/api/cars'); this.svc.car = r.ok; } catch(e) { this.svc.car = false; }
+                try { var r = await fetch('http://localhost:8002/api/rentals'); this.svc.rental = r.ok; } catch(e) { this.svc.rental = false; }
+            },
+
+            async http(url, opts) {
+                var t0 = performance.now();
+                var method = (opts && opts.method) || 'GET';
+                var to = 'Unknown';
+                if (url.indexOf('8000') > -1) to = 'CustomerService';
+                else if (url.indexOf('8080') > -1) to = 'CarService';
+                else if (url.indexOf('8002') > -1) to = 'RentalService';
+                try {
+                    var fetchOpts = { method: method, headers: { 'Content-Type':'application/json','Accept':'application/json' } };
+                    if (opts && opts.body) fetchOpts.body = opts.body;
+                    var res = await fetch(url, fetchOpts);
+                    var ms = Math.round(performance.now() - t0);
+                    var json = null;
+                    try { json = await res.json(); } catch(e) { json = null; }
+                    this.logs.unshift({ method:method, from:'Dashboard UI', to:to, url:url, status:res.status, ms:ms, time:new Date().toLocaleTimeString() });
+                    if (this.logs.length > 50) this.logs.pop();
+                    return { ok: res.ok, status: res.status, data: json };
+                } catch(e) {
+                    var ms = Math.round(performance.now() - t0);
+                    this.logs.unshift({ method:method, from:'Dashboard UI', to:to, url:url, status:0, ms:ms, time:new Date().toLocaleTimeString() });
+                    if (this.logs.length > 50) this.logs.pop();
+                    return { ok: false, status: 0, data: null };
+                }
+            },
+
+            async fetchCustomers() {
+                var r = await this.http('http://localhost:8000/api/customers');
+                this.customers = (r.ok && r.data && r.data.data) ? r.data.data : [];
+            },
+
+            async fetchCars() {
+                var r = await this.http('http://localhost:8080/api/cars');
+                this.cars = (r.ok && r.data && r.data.data) ? r.data.data : [];
+            },
+
+            async fetchRentals() {
+                var r = await this.http('http://localhost:8002/api/rentals');
+                this.rentals = (r.ok && r.data && r.data.data) ? r.data.data : [];
+            },
+
+            openModal(type) {
+                this.modal = type;
+                if (type === 'rental') {
+                    var today = new Date().toISOString().split('T')[0];
+                    var next = new Date(Date.now() + 7*86400000).toISOString().split('T')[0];
+                    this.fRental.rental_date = today;
+                    this.fRental.return_date = next;
+                }
+            },
+
+            async saveCustomer() {
+                if (!this.fCustomer.name || !this.fCustomer.email) { this.toast('error','Error','Name & email required'); return; }
+                this.isSaving = true;
+                var r = await this.http('http://localhost:8000/api/customers', { method:'POST', body: JSON.stringify(this.fCustomer) });
+                this.isSaving = false;
+                if (r.ok) { this.toast('success','Saved','Customer added to Laravel service'); this.modal=null; this.fCustomer={name:'',email:'',phone:'',ktp_number:'',address:''}; this.fetchCustomers(); }
+                else { this.toast('error','Failed', (r.data&&r.data.message)||'Error'); }
+            },
+
+            async saveCar() {
+                if (!this.fCar.brand || !this.fCar.model) { this.toast('error','Error','Brand & model required'); return; }
+                this.isSaving = true;
+                var r = await this.http('http://localhost:8080/api/cars', { method:'POST', body: JSON.stringify(this.fCar) });
+                this.isSaving = false;
+                if (r.ok) { this.toast('success','Saved','Car added to CI4 service'); this.modal=null; this.fCar={brand:'',model:'',year:'',plate_number:'',price_per_day:''}; this.fetchCars(); }
+                else { this.toast('error','Failed', (r.data&&r.data.message)||'Error'); }
+            },
+
+            async saveRental() {
+                if (!this.fRental.customer_id || !this.fRental.car_id || !this.fRental.rental_date || !this.fRental.return_date) { this.toast('error','Error','All fields required'); return; }
+                this.isSaving = true;
+                var r = await this.http('http://localhost:8002/api/rentals', { method:'POST', body: JSON.stringify(this.fRental) });
+                this.isSaving = false;
+                if (r.ok) {
+                    var c = (r.data && r.data.service_calls) || {};
+                    this.toast('success','Rental Created','Customer:'+c.customer_service+' CarGet:'+c.car_service_get+' CarUpdate:'+c.car_service_update);
+                    this.modal=null; this.fRental={customer_id:'',car_id:'',rental_date:'',return_date:''};
+                    this.fetchRentals(); this.fetchCars();
+                } else { this.toast('error','Failed', (r.data&&(r.data.detail||r.data.message))||'Error'); }
+            },
+
+            async returnCar(id) {
+                var r = await this.http('http://localhost:8002/api/rentals/'+id+'/return', { method:'PUT' });
+                if (r.ok) { this.toast('success','Returned','Car status updated'); this.fetchRentals(); this.fetchCars(); }
+                else { this.toast('error','Failed','Could not return'); }
+            },
+
+            async fetchCustomerRentals(id) {
+                var r = await this.http('http://localhost:8000/api/customers/'+id+'/rentals');
+                if (r.ok) { var n = (r.data&&r.data.rental_history&&r.data.rental_history.length)||0; this.toast('info','Consumer Call','CustomerService → RentalService: '+n+' found'); }
+                else { this.toast('error','Failed','Error fetching history'); }
+            },
+
+            quickRent(car) {
+                this.fRental.car_id = car.id;
+                this.openModal('rental');
+            },
+
+            formatRp(n) {
+                if (n === null || n === undefined || isNaN(n)) return '0';
+                return new Intl.NumberFormat('id-ID').format(n);
+            },
+
+            toast(type, title, msg) {
+                var id = ++this.tid;
+                this.toasts.push({ id:id, type:type, title:title, msg:msg });
+                var self = this;
+                setTimeout(function() { self.toasts = self.toasts.filter(function(t){ return t.id !== id; }); }, 4000);
+            }
+        }
+    }
+    </script>
+</body>
+</html>
